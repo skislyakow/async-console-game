@@ -4,18 +4,21 @@ import random
 
 
 async def blink(canvas, row, column, symbol="*"):
+    for _ in range(random.randint(0, 2)):
+        await asyncio.sleep(random.uniform(0, 2.0))
+
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        await asyncio.sleep(0)
+        await asyncio.sleep(2.0)
 
         canvas.addstr(row, column, symbol)
-        await asyncio.sleep(0)
+        await asyncio.sleep(0.3)
 
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        await asyncio.sleep(0)
+        await asyncio.sleep(0.5)
 
         canvas.addstr(row, column, symbol)
-        await asyncio.sleep(0)
+        await asyncio.sleep(0.3)
 
 
 def draw(canvas):
@@ -27,14 +30,18 @@ def draw(canvas):
 
 async def main(canvas):
     max_y, max_x = canvas.getmaxyx()
+    used_coordinates = set()
 
-    for _ in range(100):
-        row = random.randint(1, max_y - 2)
-        column = random.randint(1, max_x - 2)
+    for _ in range(150):
+        while True:
+            row = random.randint(1, max_y - 2)
+            column = random.randint(1, max_x - 2)
+
+            if (row, column) not in used_coordinates:
+                used_coordinates.add((row, column))
+                break
+
         asyncio.create_task(blink(canvas, row, column, random.choice("+*.:")))
-
-        for _ in range(random.randint(0, 3)):
-            await asyncio.sleep(0)
 
     while True:
         canvas.refresh()
