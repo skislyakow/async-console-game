@@ -1,5 +1,6 @@
 import asyncio
 import curses
+import random
 
 
 async def blink(canvas, row, column, symbol="*"):
@@ -25,16 +26,19 @@ def draw(canvas):
 
 
 async def main(canvas):
-    asyncio.create_task(blink(canvas, 2, 2, "* * * * *"))
+    max_y, max_x = canvas.getmaxyx()
 
-    phase_durations = [2.0, 0.3, 0.5, 0.3]
-    curent_phase = 0
+    for _ in range(100):
+        row = random.randint(1, max_y - 2)
+        column = random.randint(1, max_x - 2)
+        asyncio.create_task(blink(canvas, row, column, random.choice("+*.:")))
+
+        for _ in range(random.randint(0, 3)):
+            await asyncio.sleep(0)
 
     while True:
         canvas.refresh()
-        await asyncio.sleep(phase_durations[curent_phase])
-        await asyncio.sleep(0)
-        curent_phase = (curent_phase + 1) % len(phase_durations)
+        await asyncio.sleep(0.1)
 
 
 if __name__ == "__main__":
