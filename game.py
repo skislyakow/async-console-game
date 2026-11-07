@@ -1,5 +1,6 @@
 import asyncio
 import curses
+import itertools
 import random
 import time
 
@@ -22,8 +23,6 @@ async def blink(canvas, row, column, symbol="*"):
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
-    """Display animation of gun shot, direction and speed can be specified."""
-
     row, column = start_row, start_column
 
     canvas.addstr(round(row), round(column), "*")
@@ -43,7 +42,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
     curses.beep()
 
-    while 0 < row < max_row and 0 < column < max_column:
+    while 1 < round(row) < max_row - 1 and 1 < round(column) < max_column - 1:
         canvas.addstr(round(row), round(column), symbol)
         await sleep(1)
         canvas.addstr(round(row), round(column), " ")
@@ -56,13 +55,56 @@ async def sleep(ticks=1):
         await asyncio.sleep(0)
 
 
-def draw(canvas):
+async def animate_spaceship(canvas, start_row, start_column, frames):
+    row, column = start_row, start_column
+
+    for frame in itertools.cycle(frames):
+        draw_frame(canvas, row, column, frame)
+
+        await sleep(2)
+
+        draw_frame(canvas, row, column, frame, negative=True)
+
+
+def draw_frame(canvas, start_row, start_column, text, negative=False):
+    rows_number, columns_number = canvas.getmaxyx()
+
+    for row, line in enumerate(text.splitlines(), round(start_row)):
+        if row < 0:
+            continue
+
+        if row >= rows_number:
+            break
+
+        for column, symbol in enumerate(line, round(start_column)):
+            if column < 0:
+                continue
+
+            if column >= columns_number:
+                break
+
+            if symbol == " ":
+                continue
+
+            if row == rows_number - 1 and column == columns_number - 1:
+                continue
+
+            symbol = symbol if not negative else " "
+            canvas.addch(row, column, symbol)
+
+
+def get_frame_size(text):
+    lines = text.splitlines()
+    rows = len(lines)
+    columns = max([len(line) for line in lines])
+    return rows, columns
+
+
+def draw(canvas, rocket_frames):
     curses.curs_set(False)
     canvas.border()
 
-    # asyncio.run(main(canvas))
-
-    coroutines = asyncio.run(main(canvas))
+    coroutines = asyncio.run(main(canvas, rocket_frames))
 
     while True:
         actice_coroutines = []
@@ -80,7 +122,7 @@ def draw(canvas):
         time.sleep(0.1)
 
 
-async def main(canvas):
+async def main(canvas, rocket_frames):
     coroutines = []
 
     max_y, max_x = canvas.getmaxyx()
@@ -97,11 +139,14 @@ async def main(canvas):
 
         coroutines.append(blink(canvas, row, column, random.choice("+*.:")))
 
-        # asyncio.create_task(blink(canvas, row, column, random.choice("+*.:")))
+    ship_row = max_y // 2
+    ship_column = max_x // 2
+    _, ship_columns = get_frame_size(rocket_frames[0])
+    fire_row = ship_row
+    fire_column = ship_column + (ship_columns // 2)
 
-    start_row = max_y // 2
-    start_column = max_x // 2
-    coroutines.append(fire(canvas, start_row, start_column))
+    coroutines.append(fire(canvas, fire_row, fire_column))
+    coroutines.append(animate_spaceship(canvas, ship_row, ship_column, rocket_frames))
 
     return coroutines
 
@@ -111,5 +156,10 @@ async def main(canvas):
 
 
 if __name__ == "__main__":
+    with open("frames/rocket_frame_1.txt", "r", encoding="utf-8") as f:
+        frame_1 = f.read()
+    with open("frames/rocket_frame_2.txt", "r", encoding="utf-8") as f:
+        frame_2 = f.read()
+    rocket_frames = [frame_1, frame_2]
     curses.update_lines_cols()
-    curses.wrapper(draw)
+    curses.wrapper(draw, rocket_frames)
