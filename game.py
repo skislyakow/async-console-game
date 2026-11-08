@@ -92,12 +92,19 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
     row, column = start_row, start_column
     frame_1, frame_2 = frames
 
+    ship_rows, ship_columns = get_frame_size(frame_1)
+
     while True:
         for frame in (frame_1, frame_1, frame_2, frame_2):
+            max_y, max_x = canvas.getmaxyx()
+
             rows_direction, columns_direction, _ = read_controls(canvas)
 
             row += rows_direction
             column += columns_direction
+
+            row = max(1, min(row, max_y - 1 - ship_rows))
+            column = max(1, min(column, max_x - 1 - ship_columns))
 
             draw_frame(canvas, row, column, frame)
 
