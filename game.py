@@ -1,8 +1,41 @@
 import asyncio
 import curses
-import itertools
 import random
 import time
+
+SPACE_KEY_CODE = 32
+LEFT_KEY_CODE = 260
+RIGHT_KEY_CODE = 261
+UP_KEY_CODE = 259
+DOWN_KEY_CODE = 258
+
+
+def read_controls(canvas):
+    rows_direction = columns_direction = 0
+    space_pressed = False
+
+    while True:
+        pressed_key_code = canvas.getch()
+
+        if pressed_key_code == -1:
+            break
+
+        if pressed_key_code == UP_KEY_CODE:
+            rows_direction = -1
+
+        if pressed_key_code == DOWN_KEY_CODE:
+            rows_direction = 1
+
+        if pressed_key_code == RIGHT_KEY_CODE:
+            columns_direction = 1
+
+        if pressed_key_code == LEFT_KEY_CODE:
+            columns_direction = -1
+
+        if pressed_key_code == SPACE_KEY_CODE:
+            space_pressed = True
+
+    return rows_direction, columns_direction, space_pressed
 
 
 async def blink(canvas, row, column, symbol="*"):
@@ -57,13 +90,20 @@ async def sleep(ticks=1):
 
 async def animate_spaceship(canvas, start_row, start_column, frames):
     row, column = start_row, start_column
+    frame_1, frame_2 = frames
 
-    for frame in itertools.cycle(frames):
-        draw_frame(canvas, row, column, frame)
+    while True:
+        for frame in (frame_1, frame_1, frame_2, frame_2):
+            rows_direction, columns_direction, _ = read_controls(canvas)
 
-        await sleep(2)
+            row += rows_direction
+            column += columns_direction
 
-        draw_frame(canvas, row, column, frame, negative=True)
+            draw_frame(canvas, row, column, frame)
+
+            await sleep(1)
+
+            draw_frame(canvas, row, column, frame, negative=True)
 
 
 def draw_frame(canvas, start_row, start_column, text, negative=False):
@@ -103,20 +143,21 @@ def get_frame_size(text):
 def draw(canvas, rocket_frames):
     curses.curs_set(False)
     canvas.border()
+    canvas.nodelay(True)
 
     coroutines = asyncio.run(main(canvas, rocket_frames))
 
     while True:
-        actice_coroutines = []
+        active_coroutines = []
 
         for coroutine in coroutines:
             try:
                 coroutine.send(None)
-                actice_coroutines.append(coroutine)
+                active_coroutines.append(coroutine)
             except StopIteration:
                 pass
 
-        coroutines = actice_coroutines
+        coroutines = active_coroutines
 
         canvas.refresh()
         time.sleep(0.1)
