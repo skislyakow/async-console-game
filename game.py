@@ -38,8 +38,8 @@ def read_controls(canvas):
     return rows_direction, columns_direction, space_pressed
 
 
-async def blink(canvas, row, column, symbol="*"):
-    await sleep(random.randint(0, 20))
+async def blink(canvas, row, column, symbol="*", start_delay=0):
+    await sleep(start_delay)
 
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
@@ -185,7 +185,9 @@ async def main(canvas, rocket_frames):
                 used_coordinates.add((row, column))
                 break
 
-        coroutines.append(blink(canvas, row, column, random.choice("+*.:")))
+        delay = random.randint(0, 20)
+
+        coroutines.append(blink(canvas, row, column, random.choice("+*.:"), delay))
 
     ship_row = max_y // 2
     ship_column = max_x // 2
@@ -197,10 +199,6 @@ async def main(canvas, rocket_frames):
     coroutines.append(animate_spaceship(canvas, ship_row, ship_column, rocket_frames))
 
     return coroutines
-
-    while True:
-        canvas.refresh()
-        await asyncio.sleep(0.1)
 
 
 if __name__ == "__main__":
