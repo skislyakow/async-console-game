@@ -3,39 +3,8 @@ import curses
 import random
 import time
 
-SPACE_KEY_CODE = 32
-LEFT_KEY_CODE = 260
-RIGHT_KEY_CODE = 261
-UP_KEY_CODE = 259
-DOWN_KEY_CODE = 258
-
-
-def read_controls(canvas):
-    rows_direction = columns_direction = 0
-    space_pressed = False
-
-    while True:
-        pressed_key_code = canvas.getch()
-
-        if pressed_key_code == -1:
-            break
-
-        if pressed_key_code == UP_KEY_CODE:
-            rows_direction = -1
-
-        if pressed_key_code == DOWN_KEY_CODE:
-            rows_direction = 1
-
-        if pressed_key_code == RIGHT_KEY_CODE:
-            columns_direction = 1
-
-        if pressed_key_code == LEFT_KEY_CODE:
-            columns_direction = -1
-
-        if pressed_key_code == SPACE_KEY_CODE:
-            space_pressed = True
-
-    return rows_direction, columns_direction, space_pressed
+from curses_tools import draw_frame, get_frame_size, read_controls
+from space_garbage import fly_garbage
 
 
 async def blink(canvas, row, column, symbol="*", start_delay=0):
@@ -113,46 +82,12 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
             draw_frame(canvas, row, column, frame, negative=True)
 
 
-def draw_frame(canvas, start_row, start_column, text, negative=False):
-    rows_number, columns_number = canvas.getmaxyx()
-
-    for row, line in enumerate(text.splitlines(), round(start_row)):
-        if row < 0:
-            continue
-
-        if row >= rows_number:
-            break
-
-        for column, symbol in enumerate(line, round(start_column)):
-            if column < 0:
-                continue
-
-            if column >= columns_number:
-                break
-
-            if symbol == " ":
-                continue
-
-            if row == rows_number - 1 and column == columns_number - 1:
-                continue
-
-            symbol = symbol if not negative else " "
-            canvas.addch(row, column, symbol)
-
-
-def get_frame_size(text):
-    lines = text.splitlines()
-    rows = len(lines)
-    columns = max([len(line) for line in lines])
-    return rows, columns
-
-
-def draw(canvas, rocket_frames):
+def draw(canvas, rocket_frames, garbage_frames):
     curses.curs_set(False)
     canvas.border()
     canvas.nodelay(True)
 
-    coroutines = asyncio.run(main(canvas, rocket_frames))
+    coroutines = asyncio.run(main(canvas, rocket_frames, garbage_frames))
 
     while True:
         active_coroutines = []
@@ -170,7 +105,7 @@ def draw(canvas, rocket_frames):
         time.sleep(0.1)
 
 
-async def main(canvas, rocket_frames):
+async def main(canvas, rocket_frames, garbage_frames):
     coroutines = []
 
     max_y, max_x = canvas.getmaxyx()
@@ -197,15 +132,31 @@ async def main(canvas, rocket_frames):
 
     coroutines.append(fire(canvas, fire_row, fire_column))
     coroutines.append(animate_spaceship(canvas, ship_row, ship_column, rocket_frames))
+    coroutines.append(
+        fly_garbage(canvas, column=10, garbage_frame=random.choice(garbage_frames))
+    )
 
     return coroutines
 
 
 if __name__ == "__main__":
+    garbage_frames_list = (
+        "duck.txt",
+        "hubble.txt",
+        "lamp.txt",
+        "trash_large.txt",
+        "trash_small.txt",
+        "trash_xl.txt",
+    )
+    garbage_frames = []
+    for file in garbage_frames_list:
+        with open(f"frames/{file}", "r", encoding="utf-8") as f:
+            frame = f.read()
+            garbage_frames.append(frame)
     with open("frames/rocket_frame_1.txt", "r", encoding="utf-8") as f:
         frame_1 = f.read()
     with open("frames/rocket_frame_2.txt", "r", encoding="utf-8") as f:
         frame_2 = f.read()
     rocket_frames = [frame_1, frame_2]
     curses.update_lines_cols()
-    curses.wrapper(draw, rocket_frames)
+    curses.wrapper(draw, rocket_frames, garbage_frames)
