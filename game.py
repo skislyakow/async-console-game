@@ -4,6 +4,7 @@ import random
 import time
 
 from curses_tools import draw_frame, get_frame_size, read_controls
+from physics import update_speed
 from space_garbage import fly_garbage
 
 
@@ -59,6 +60,7 @@ async def sleep(ticks=1):
 
 async def animate_spaceship(canvas, start_row, start_column, frames):
     row, column = start_row, start_column
+    row_speed = column_speed = 0
     frame_1, frame_2 = frames
 
     ship_rows, ship_columns = get_frame_size(frame_1)
@@ -68,9 +70,12 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
             max_y, max_x = canvas.getmaxyx()
 
             rows_direction, columns_direction, _ = read_controls(canvas)
+            row_speed, column_speed = update_speed(
+                row_speed, column_speed, rows_direction, columns_direction
+            )
 
-            row += rows_direction
-            column += columns_direction
+            row += row_speed
+            column += column_speed
 
             row = max(1, min(row, max_y - 1 - ship_rows))
             column = max(1, min(column, max_x - 1 - ship_columns))
