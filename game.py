@@ -82,12 +82,31 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
             draw_frame(canvas, row, column, frame, negative=True)
 
 
+async def fill_orbit_with_garbage(canvas, garbage_frames, coroutines):
+    _, column_number = canvas.getmaxyx()
+
+    while True:
+        garbage_frame = random.choice(garbage_frames)
+        _, frame_columns = get_frame_size(garbage_frame)
+
+        column = random.randint(1, column_number - frame_columns - 1)
+
+        coroutines.append(
+            fly_garbage(
+                canvas,
+                column=column,
+                garbage_frame=garbage_frame,
+            )
+        )
+
+        await sleep(random.randint(10, 30))
+
+
 def draw(canvas, rocket_frames, garbage_frames):
     curses.curs_set(False)
-    canvas.border()
     canvas.nodelay(True)
 
-    coroutines = asyncio.run(main(canvas, rocket_frames, garbage_frames))
+    coroutines = create_coroutines(canvas, rocket_frames, garbage_frames)
 
     while True:
         active_coroutines = []
@@ -99,13 +118,14 @@ def draw(canvas, rocket_frames, garbage_frames):
             except StopIteration:
                 pass
 
-        coroutines = active_coroutines
+        coroutines[:] = active_coroutines
 
+        canvas.border()
         canvas.refresh()
         time.sleep(0.1)
 
 
-async def main(canvas, rocket_frames, garbage_frames):
+def create_coroutines(canvas, rocket_frames, garbage_frames):
     coroutines = []
 
     max_y, max_x = canvas.getmaxyx()
@@ -132,9 +152,7 @@ async def main(canvas, rocket_frames, garbage_frames):
 
     coroutines.append(fire(canvas, fire_row, fire_column))
     coroutines.append(animate_spaceship(canvas, ship_row, ship_column, rocket_frames))
-    coroutines.append(
-        fly_garbage(canvas, column=10, garbage_frame=random.choice(garbage_frames))
-    )
+    coroutines.append(fill_orbit_with_garbage(canvas, garbage_frames, coroutines))
 
     return coroutines
 
