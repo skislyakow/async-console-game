@@ -58,7 +58,7 @@ async def sleep(ticks=1):
         await asyncio.sleep(0)
 
 
-async def animate_spaceship(canvas, start_row, start_column, frames):
+async def animate_spaceship(canvas, start_row, start_column, frames, coroutines):
     row, column = start_row, start_column
     row_speed = column_speed = 0
     frame_1, frame_2 = frames
@@ -69,7 +69,12 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
         for frame in (frame_1, frame_1, frame_2, frame_2):
             max_y, max_x = canvas.getmaxyx()
 
-            rows_direction, columns_direction, _ = read_controls(canvas)
+            rows_direction, columns_direction, space_pressed = read_controls(canvas)
+
+            if space_pressed:
+                fire_column = column + (ship_columns // 2)
+                coroutines.append(fire(canvas, row, fire_column))
+
             row_speed, column_speed = update_speed(
                 row_speed, column_speed, rows_direction, columns_direction
             )
@@ -151,12 +156,10 @@ def create_coroutines(canvas, rocket_frames, garbage_frames):
 
     ship_row = max_y // 2
     ship_column = max_x // 2
-    _, ship_columns = get_frame_size(rocket_frames[0])
-    fire_row = ship_row
-    fire_column = ship_column + (ship_columns // 2)
 
-    coroutines.append(fire(canvas, fire_row, fire_column))
-    coroutines.append(animate_spaceship(canvas, ship_row, ship_column, rocket_frames))
+    coroutines.append(
+        animate_spaceship(canvas, ship_row, ship_column, rocket_frames, coroutines)
+    )
     coroutines.append(fill_orbit_with_garbage(canvas, garbage_frames, coroutines))
 
     return coroutines
