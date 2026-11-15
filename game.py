@@ -4,8 +4,11 @@ import random
 import time
 
 from curses_tools import draw_frame, get_frame_size, read_controls
+from obstacles import show_obstacles
 from physics import update_speed
 from space_garbage import fly_garbage
+
+obstacles = []
 
 
 async def blink(canvas, row, column, symbol="*", start_delay=0):
@@ -106,6 +109,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames, coroutines):
                 canvas,
                 column=column,
                 garbage_frame=garbage_frame,
+                obstacles=obstacles,
             )
         )
 
@@ -161,6 +165,7 @@ def create_coroutines(canvas, rocket_frames, garbage_frames):
         animate_spaceship(canvas, ship_row, ship_column, rocket_frames, coroutines)
     )
     coroutines.append(fill_orbit_with_garbage(canvas, garbage_frames, coroutines))
+    coroutines.append(show_obstacles(canvas, obstacles))
 
     return coroutines
 
