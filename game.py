@@ -4,11 +4,11 @@ import random
 import time
 
 from curses_tools import draw_frame, get_frame_size, read_controls
-from obstacles import show_obstacles
+from game_scenario import PHRASES, get_garbage_delay_tics
 from physics import update_speed
 from space_garbage import fly_garbage
 
-GAME_OVER_FRAME = """\
+GAME_OVER_FRAME = """
    _____                         ____
   / ____|                       / __ \
 
@@ -20,6 +20,7 @@ GAME_OVER_FRAME = """\
 
 obstacles = []
 obstacles_in_last_collisions = []
+year = 1957
 
 
 async def show_gameover(canvas):
@@ -31,6 +32,26 @@ async def show_gameover(canvas):
 
     while True:
         draw_frame(canvas, row, column, GAME_OVER_FRAME)
+        await asyncio.sleep(0)
+
+
+async def count_years():
+    global year
+    while True:
+        await sleep(15)
+        year += 1
+
+
+async def show_year(canvas):
+    max_y, max_x = canvas.getmaxyx()
+    sub_canvas = canvas.derwin(1, max_x - 2, max_y - 2, 1)
+
+    while True:
+        sub_canvas.erase()
+        phrase = PHRASES.get(year, "")
+        text = f"Year: {year} {phrase}" if phrase else f"Year: {year}"
+        sub_canvas.addstr(0, 1, text[: max_x - 4])
+        sub_canvas.noutrefresh()
         await asyncio.sleep(0)
 
 
@@ -102,7 +123,7 @@ async def animate_spaceship(canvas, start_row, start_column, frames, coroutines)
 
             rows_direction, columns_direction, space_pressed = read_controls(canvas)
 
-            if space_pressed:
+            if space_pressed and year >= 2020:
                 fire_column = column + (ship_columns // 2)
                 coroutines.append(fire(canvas, row, fire_column))
 
@@ -132,6 +153,11 @@ async def fill_orbit_with_garbage(canvas, garbage_frames, coroutines):
     _, column_number = canvas.getmaxyx()
 
     while True:
+        delay = get_garbage_delay_tics(year)
+        if delay is None:
+            await sleep(1)
+            continue
+
         garbage_frame = random.choice(garbage_frames)
         _, frame_columns = get_frame_size(garbage_frame)
 
@@ -147,7 +173,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames, coroutines):
             )
         )
 
-        await sleep(random.randint(10, 30))
+        await sleep(delay)
 
 
 def draw(canvas, rocket_frames, garbage_frames):
@@ -199,7 +225,8 @@ def create_coroutines(canvas, rocket_frames, garbage_frames):
         animate_spaceship(canvas, ship_row, ship_column, rocket_frames, coroutines)
     )
     coroutines.append(fill_orbit_with_garbage(canvas, garbage_frames, coroutines))
-    coroutines.append(show_obstacles(canvas, obstacles))
+    coroutines.append(count_years())
+    coroutines.append(show_year(canvas))
 
     return coroutines
 
