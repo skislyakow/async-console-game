@@ -35,11 +35,12 @@ async def show_gameover(canvas):
         await asyncio.sleep(0)
 
 
-async def count_years():
+async def count_years(spaceship_coroutine):
     global year
-    while True:
+    while spaceship_coroutine.cr_frame is not None:
         await sleep(15)
-        year += 1
+        if spaceship_coroutine.cr_frame is not None:
+            year += 1
 
 
 async def show_year(canvas):
@@ -221,11 +222,13 @@ def create_coroutines(canvas, rocket_frames, garbage_frames):
     ship_row = max_y // 2
     ship_column = max_x // 2
 
-    coroutines.append(
-        animate_spaceship(canvas, ship_row, ship_column, rocket_frames, coroutines)
+    spaceship_coroutine = animate_spaceship(
+        canvas, ship_row, ship_column, rocket_frames, coroutines
     )
+
+    coroutines.append(spaceship_coroutine)
     coroutines.append(fill_orbit_with_garbage(canvas, garbage_frames, coroutines))
-    coroutines.append(count_years())
+    coroutines.append(count_years(spaceship_coroutine))
     coroutines.append(show_year(canvas))
 
     return coroutines
