@@ -8,8 +8,30 @@ from obstacles import show_obstacles
 from physics import update_speed
 from space_garbage import fly_garbage
 
+GAME_OVER_FRAME = """\
+   _____                         ____
+  / ____|                       / __ \
+
+ | |  __  __ _ _ __ ___   ___  | |  | |_   _____ _ __
+ | | |_ |/ _` | '_ ` _ \\ / _ \\ | |  | \\ \\ / / _ \\ '__|
+ | |__| | (_| | | | | | |  __/ | |__| |\\ V /  __/ |
+  \\_____|\\__,_|_| |_| |_|\\___|  \\____/  \\_/ \\___|_|
+"""
+
 obstacles = []
 obstacles_in_last_collisions = []
+
+
+async def show_gameover(canvas):
+    rows_number, columns_number = canvas.getmaxyx()
+    frame_rows, frame_columns = get_frame_size(GAME_OVER_FRAME)
+
+    row = (rows_number - frame_rows) // 2
+    column = (columns_number - frame_columns) // 2
+
+    while True:
+        draw_frame(canvas, row, column, GAME_OVER_FRAME)
+        await asyncio.sleep(0)
 
 
 async def blink(canvas, row, column, symbol="*", start_delay=0):
@@ -99,6 +121,11 @@ async def animate_spaceship(canvas, start_row, start_column, frames, coroutines)
             await sleep(1)
 
             draw_frame(canvas, row, column, frame, negative=True)
+
+            for obstacle in obstacles:
+                if obstacle.has_collision(row, column, ship_rows, ship_columns):
+                    coroutines.append(show_gameover(canvas))
+                    return
 
 
 async def fill_orbit_with_garbage(canvas, garbage_frames, coroutines):
