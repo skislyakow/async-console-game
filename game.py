@@ -9,6 +9,7 @@ from physics import update_speed
 from space_garbage import fly_garbage
 
 obstacles = []
+obstacles_in_last_collisions = []
 
 
 async def blink(canvas, row, column, symbol="*", start_delay=0):
@@ -51,6 +52,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
     while 1 < round(row) < max_row - 1 and 1 < round(column) < max_column - 1:
         for obstacle in obstacles:
             if obstacle.has_collision(round(row), round(column)):
+                obstacles_in_last_collisions.append(obstacle)
                 return
 
         canvas.addstr(round(row), round(column), symbol)
@@ -114,6 +116,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames, coroutines):
                 column=column,
                 garbage_frame=garbage_frame,
                 obstacles=obstacles,
+                obstacles_in_last_collisions=obstacles_in_last_collisions,
             )
         )
 
