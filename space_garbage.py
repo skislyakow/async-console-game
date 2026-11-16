@@ -1,6 +1,7 @@
 import asyncio
 
 from curses_tools import draw_frame, get_frame_size
+from explosion import explode
 from obstacles import Obstacle
 
 
@@ -22,6 +23,9 @@ async def fly_garbage(
         while row < rows_number:
             if obstacle in obstacles_in_last_collisions:
                 obstacles_in_last_collisions.remove(obstacle)
+                center_row = row + row_size / 2
+                center_column = column + column_size / 2
+                await explode(canvas, center_row, center_column)
                 return
 
             draw_frame(canvas, row, column, garbage_frame)
